@@ -548,6 +548,10 @@ pub(crate) fn console_ui(
                     UiBuilder::new().layout(Layout::bottom_up(Align::Min)),
                     |ui| {
                     
+                    // create the area to show suggestions
+                    let suggestions_area = egui::Area::new(ui.auto_id_with("suggestions"))
+                        .fixed_pos(ui.next_widget_position())
+                        .movable(false);
 
                     // Input
                     let text_edit = TextEdit::singleline(&mut state.buf)
@@ -557,6 +561,35 @@ pub(crate) fn console_ui(
 
                     let text_edit_response = ui.add(text_edit);
 
+                    // show a few suggestions
+                    if text_edit_response.has_focus()
+                        && !state.buf.is_empty()
+                        && !cache.prediction_matches_buffer
+                    {
+
+                        suggestions_area.show(ui.ctx(), |ui| {
+                            ui.set_min_width(config.width);
+
+                            for (i, suggestion) in cache.predictions_cache.iter().enumerate() {
+                                let mut layout_job = egui::text::LayoutJob::default();
+                                let is_highlighted = Some(i) == state.suggestion_index;
+
+                                let mut style = TextFormat {
+                                    font_id: FontId::new(14.0, egui::FontFamily::Monospace),
+                                    color: Color32::WHITE,
+                                    ..default()
+                                };
+
+                                if is_highlighted {
+                                    style.underline = egui::Stroke::new(1., Color32::WHITE);
+                                    style.background = Color32::from_black_alpha(128);
+                                }
+
+                                layout_job.append(suggestion, 0.0, style);
+                                ui.label(layout_job);
+                            }
+                        });
+                    }
 
                     // Separator
                     ui.separator();
@@ -592,39 +625,6 @@ pub(crate) fn console_ui(
                         return;
                     }
 
-                    // show a few suggestions
-                    if text_edit_response.has_focus()
-                        && !state.buf.is_empty()
-                        && !cache.prediction_matches_buffer
-                    {
-                        // create the area to show suggestions
-                        let suggestions_area = egui::Area::new(ui.auto_id_with("suggestions"))
-                            .fixed_pos(ui.next_widget_position())
-                            .movable(false);
-
-                        suggestions_area.show(ui.ctx(), |ui| {
-                            ui.set_min_width(config.width);
-
-                            for (i, suggestion) in cache.predictions_cache.iter().enumerate() {
-                                let mut layout_job = egui::text::LayoutJob::default();
-                                let is_highlighted = Some(i) == state.suggestion_index;
-
-                                let mut style = TextFormat {
-                                    font_id: FontId::new(14.0, egui::FontFamily::Monospace),
-                                    color: Color32::WHITE,
-                                    ..default()
-                                };
-
-                                if is_highlighted {
-                                    style.underline = egui::Stroke::new(1., Color32::WHITE);
-                                    style.background = Color32::from_black_alpha(128);
-                                }
-
-                                layout_job.append(suggestion, 0.0, style);
-                                ui.label(layout_job);
-                            }
-                        });
-                    }
 
                     handle_enter(
                         config,
