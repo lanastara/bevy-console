@@ -7,9 +7,9 @@ use bevy::ecs::{
 };
 use bevy::platform::hash::FixedState;
 use bevy::{input::keyboard::KeyboardInput, prelude::*};
-use bevy_egui::egui::{self, Align, ScrollArea, TextEdit};
+use bevy_egui::egui::{self, Align, ScrollArea, TextEdit, UiBuilder};
 use bevy_egui::egui::{text::LayoutJob, text_selection::CCursorRange};
-use bevy_egui::egui::{Context, Id};
+use bevy_egui::egui::{Context, Id, Layout};
 use bevy_egui::{
     egui::{epaint::text::cursor::CCursor, Color32, FontId, TextFormat},
     EguiContexts,
@@ -544,9 +544,24 @@ pub(crate) fn console_ui(
                 ui.style_mut().visuals.extreme_bg_color = config.background_color;
                 ui.style_mut().visuals.override_text_color = Some(config.foreground_color);
 
-                ui.vertical(|ui| {
-                    const WRITE_AREA_HEIGHT: f32 = 30.0;
-                    let scroll_height = ui.available_height() - WRITE_AREA_HEIGHT;
+                ui.scope_builder(
+                    UiBuilder::new().layout(Layout::bottom_up(Align::Min)),
+                    |ui| {
+                    
+
+                    // Input
+                    let text_edit = TextEdit::singleline(&mut state.buf)
+                        .desired_width(f32::INFINITY)
+                        .lock_focus(true)
+                        .font(egui::TextStyle::Monospace);
+
+                    let text_edit_response = ui.add(text_edit);
+
+
+                    // Separator
+                    ui.separator();
+
+                    let scroll_height = ui.available_height();
                     // Scroll area
                     ScrollArea::vertical()
                         .auto_shrink([false, false])
@@ -565,9 +580,6 @@ pub(crate) fn console_ui(
                             }
                         });
 
-                    // Separator
-                    ui.separator();
-
                     // Clear line on ctrl+c
                     if ui.input(|i| i.modifiers.ctrl & i.key_pressed(egui::Key::C)) {
                         state.buf.clear();
@@ -579,14 +591,6 @@ pub(crate) fn console_ui(
                         state.scrollback.clear();
                         return;
                     }
-
-                    // Input
-                    let text_edit = TextEdit::singleline(&mut state.buf)
-                        .desired_width(f32::INFINITY)
-                        .lock_focus(true)
-                        .font(egui::TextStyle::Monospace);
-
-                    let text_edit_response = ui.add(text_edit);
 
                     // show a few suggestions
                     if text_edit_response.has_focus()
